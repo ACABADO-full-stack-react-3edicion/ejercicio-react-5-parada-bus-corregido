@@ -1,56 +1,47 @@
+import { useCallback, useEffect, useState } from "react";
+import { FormularioLinea } from "./componentes/FormularioLinea";
+import { FormularioParada } from "./componentes/FormularioParada";
+import { Info } from "./componentes/Info";
+import { LineasContext } from "./contextos/LineasContext";
+
 function App() {
+  const appId = process.env.REACT_APP_APP_ID;
+  const appKey = process.env.REACT_APP_APP_KEY;
+  const authQuery = `?app_id=${appId}&app_key=${appKey}`;
+  const urlApiParada = "https://api.tmb.cat/v1/transit/parades/";
+  const urlApiLineas = "https://api.tmb.cat/v1/ibus/stops/";
+  const [parada, setParada] = useState(null);
+  const [lineas, setLineas] = useState([]);
+  const [lineaEscogida, setLineaEscogida] = useState(null);
+  const compruebaParada = async (numeroParada) => {
+    const resp = await fetch(`${urlApiParada}${numeroParada}${authQuery}`);
+    const existeParada = await resp.json();
+    if (existeParada.features.length === 0) {
+      setParada(0);
+    } else {
+      setParada(numeroParada);
+    }
+  };
+  const cargaProximasLineas = useCallback(async () => {
+    const resp = await fetch(`${urlApiLineas}${parada}${authQuery}`);
+    const lineas = await resp.json();
+    setLineas(lineas.data.ibus);
+  }, [authQuery, parada]);
+  useEffect(() => {
+    if (parada !== null) {
+      cargaProximasLineas();
+    }
+  }, [cargaProximasLineas, parada]);
   return (
-    <div className="contenedor">
-      {/* <header className="cabecera">
-        <h1>Parada nº 15</h1>
-        <div className="display">
-          <div className="bus">
-            <span className="linea">V16</span>
-            <span className="destino">Universitat</span>
-            <span className="tiempo">10min</span>
-          </div>
-          <div className="bus">
-            <span className="linea">H12</span>
-            <span className="destino">Pla de Palau</span>
-            <span className="tiempo">1min</span>
-          </div>
-          <div className="bus">
-            <span className="linea">32</span>
-            <span className="destino">Barceloneta</span>
-            <span className="tiempo">4min</span>
-          </div>
-        </div>
-        <h2>Tiempo para la línea 60: 2 minutos</h2>
-      </header>
-      <section className="forms">
-        <form>
-          <label htmlFor="num-parada">Parada nº: </label>
-          <input type="number" id="num-parada" />
-          <button type="submit">Buscar</button>
-        </form>
-        <form>
-          <label htmlFor="tiempo-linea">Tiempo para que llegue la línea: </label>
-          <select id="tiempo-linea">
-            <option value="">Elige línea</option>
-          </select>
-        </form>
-      </section> */}
-      <header className="cabecera">
-        <h2>Bus 109 - Hospital Clínic / Polígon Zona Franca</h2>
-        <h3>Polígon Zona Franca -> Hospital Clínic</h3>
-        <a href="#">Volver a la portada</a>
-      </header>
-      <section>
-        <ul className="grafico-paradas">
-          <li className="parada">Parada nº X: Nombre parada (<a href="#">ver mapa</a>)</li>
-          <li className="parada">Parada nº 1741: Cotxeres TB Zona Franca (<a href="#">ver mapa</a>)</li>
-          <li className="parada">Parada nº 1045: Pg Zona Franca - Motors (<a href="#">ver mapa</a>)</li>
-          <li className="parada">Parada nº 1615: Carrer número 4 - Carrer D (<a href="#">ver mapa</a>)</li>
-          <li className="parada">Parada nº 1639: Carrer A- Comissaria Portuària (<a href="#">ver mapa</a>)</li>
-          <li className="parada">Parada nº 1643: Mercabarna - Mercat del Peix (<a href="#">ver mapa</a>)</li>
-        </ul>
-      </section>
-    </div>
+    <LineasContext.Provider value={{ lineas }}>
+      <div className="contenedor">
+        <Info lineaEscogida={lineaEscogida} parada={parada} />
+        <section className="forms">
+          <FormularioParada compruebaParada={compruebaParada} />
+          <FormularioLinea setLineaEscogida={setLineaEscogida} />
+        </section>
+      </div>
+    </LineasContext.Provider>
   );
 }
 
